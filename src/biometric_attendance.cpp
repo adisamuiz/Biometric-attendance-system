@@ -5,10 +5,11 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
-#define mySerial Serial1
+uint8_t readnumber();
+uint8_t enrollNewFingerprint();
+int scanFingerprintAndGetId();
 
-// initialize fingerprint library
-Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
+#define mySerial Serial1
 
 int SCREEN_WIDTH = 128;
 int SCREEN_HEIGHT = 64;
@@ -18,6 +19,8 @@ int OLED_RESET = -1;
 int button_1 = 25;
 int button_2 = 26;
 
+// initialize fingerprint library and oled
+Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 void setup() {
@@ -56,6 +59,9 @@ void loop() {
     if (fingerprintId > 0) {
       Serial.println("found fingerprint with id: ");
       Serial.println(fingerprintId);
+      display.clearDisplay();
+      display.setTextSize(1);
+      display.setTextColor(SSD1306_WHITE);
       display.setCursor(0, 0);
       display.print("found fingerprint with id: ");
       display.println(fingerprintId);
@@ -70,7 +76,7 @@ void loop() {
 }
 
 // Function to get the id for the fingerprint to be enrolled
-uint8_t readnumber(void) {
+uint8_t readnumber() {
     uint8_t num = 0;
 
     while (num == 0) {
@@ -87,7 +93,7 @@ uint8_t enrollNewFingerprint() {
                  "this finger as...");
   int id = readnumber();
   if (id == 0) { // ID #0 not allowed, try again!
-    return;
+    return 0;
   }
   Serial.print("Enrolling ID #");
   Serial.println(id);
@@ -104,7 +110,7 @@ uint8_t enrollNewFingerprint() {
         break;
       case FINGERPRINT_NOFINGER:
         Serial.println("Place your finger...");
-        break;
+       // break;
       // case FINGERPRINT_PACKETRECIEVEERR:
       //   Serial.println("Communication error");
       //   break;
