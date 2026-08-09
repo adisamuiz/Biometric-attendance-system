@@ -5,7 +5,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
-uint8_t readnumber();
+uint8_t getIdNumber();
 uint8_t enrollNewFingerprint();
 int scanFingerprintAndGetId();
 
@@ -30,29 +30,35 @@ void setup() {
   Serial.begin(9600);
   while (!Serial); 
   delay(100);
-  Serial.println("Hardware Serial Fingerprint Test");
 
   // Initialize fingerprint sensor
   finger.begin(57600);
   if (!finger.verifyPassword()) {
-    //Serial.println("Found fingerprint sensor!");
-  //} 
-  //else {
     Serial.println("Did not find fingerprint sensor :(");
     while (1) {
       delay(1);
     }
   }
-
   if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
     Serial.println(F("SSD1306 allocation failed")); //"F" stores the text in flash memory instead of Ram to preserve space
-    for(;;); // Don't proceed, loop forever
+    for(;;);
   }
+
+  Serial.println("Welcome, place finger to scan!");
+  display.clearDisplay();
+  display.setTextSize(2);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 0);
+  display.println("Welcome!");
+  display.setTextSize(1);
+  display.setCursor(0, 30);
+  display.println("Place finger to scan!");
+  display.display();
 }
 
 void loop() {
-  int value1 = digitalRead(button_1);
-  int value2 = digitalRead(button_2);
+  volatile int value1 = digitalRead(button_1);
+  volatile int value2 = digitalRead(button_2);
   if (value1 == LOW && value2 == HIGH ) {
     Serial.println("button 1 PRESSED");
     int fingerprintId = scanFingerprintAndGetId();
@@ -60,13 +66,13 @@ void loop() {
       Serial.println("found fingerprint with id: ");
       Serial.println(fingerprintId);
       display.clearDisplay();
-      display.setTextSize(1);
+      display.setTextSize(2);
       display.setTextColor(SSD1306_WHITE);
-      display.setCursor(0, 0);
-      display.print("found fingerprint with id: ");
+      display.setCursor(0, 5);
+      display.print("Welcome, ID");
       display.println(fingerprintId);
       display.display();
-      delay(1000);
+      // delay(1000);
     }
   }
   if (value1 == HIGH && value2 == LOW) {
@@ -75,8 +81,7 @@ void loop() {
   }
 }
 
-// Function to get the id for the fingerprint to be enrolled
-uint8_t readnumber() {
+uint8_t getIdNumber() {
     uint8_t num = 0;
 
     while (num == 0) {
@@ -91,8 +96,8 @@ uint8_t enrollNewFingerprint() {
   Serial.println("Ready to enroll a fingerprint!");
   Serial.println("Please type in the ID # (from 1 to 127) you want to save "
                  "this finger as...");
-  int id = readnumber();
-  if (id == 0) { // ID #0 not allowed, try again!
+  int id = getIdNumber();
+  if (id == 0) {
     return 0;
   }
   Serial.print("Enrolling ID #");
@@ -110,16 +115,6 @@ uint8_t enrollNewFingerprint() {
         break;
       case FINGERPRINT_NOFINGER:
         Serial.println("Place your finger...");
-       // break;
-      // case FINGERPRINT_PACKETRECIEVEERR:
-      //   Serial.println("Communication error");
-      //   break;
-      // case FINGERPRINT_IMAGEFAIL:
-      //   Serial.println("Imaging error");
-      //   break;
-      // default:
-      //   Serial.println("Unknown error");
-      //   break;
     }
   }
 
@@ -129,16 +124,8 @@ uint8_t enrollNewFingerprint() {
     Serial.println("Image conversion failed in slot1");
     return false;
   }
-
   Serial.println("Remove finger");
   delay(2000);
-
-  // p = 0;
-  // while (p != FINGERPRINT_NOFINGER) {
-  //   p = finger.getImage();
-  // }
-  // Serial.print("ID ");
-  // Serial.println(id);
 
   // Second Scan
   p = -1;
@@ -151,16 +138,6 @@ uint8_t enrollNewFingerprint() {
         break;
       case FINGERPRINT_NOFINGER:
         Serial.println("Place your finger...");
-        break;
-      // case FINGERPRINT_PACKETRECIEVEERR:
-      //   Serial.println("Communication error");
-      //   break;
-      // case FINGERPRINT_IMAGEFAIL:
-      //   Serial.println("Imaging error");
-      //   break;
-      // default:
-      //   Serial.println("Unknown error");
-      //   break;
     }
   }
 
@@ -178,8 +155,6 @@ uint8_t enrollNewFingerprint() {
     return false;
   }
 
-  Serial.print("ID ");
-  Serial.println(id);
   p = finger.storeModel(id);
   if (p != FINGERPRINT_OK) {
     Serial.println("Fingerprint not Enrolled!");
@@ -193,8 +168,12 @@ int scanFingerprintAndGetId() {
   int p = -1;
   while (p != FINGERPRINT_OK) {
     p = finger.getImage();
+    if (digitalRead(button_1) == HIGH && digitalRead(button_2) == LOW) {
+      Serial.println("Button 2 pressed");
+      return -1;
+    }
     if (p == FINGERPRINT_NOFINGER) {
-      Serial.println("Place finger to scan");
+      continue;
     } 
     else if (p == FINGERPRINT_OK) {
       Serial.println("Finger scanned!");
