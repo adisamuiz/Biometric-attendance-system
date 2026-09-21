@@ -8,23 +8,26 @@
 uint8_t getIdNumber();
 uint8_t enrollNewFingerprint();
 int scanFingerprintAndGetId();
+void setOledDisplay(const String& displayText, int textSize, int cursorYaxis, uint16_t textColor);
 
 #define mySerial Serial1
 
 int SCREEN_WIDTH = 128;
 int SCREEN_HEIGHT = 64;
-uint8_t SCREEN_ADDRESS = 0x3C; // Standard is 3D but proteus is 3C
+uint8_t SCREEN_ADDRESS = 0x3D; // Standard is 3D but proteus is 3C
 int OLED_RESET = -1;
 
 int button_1 = 25;
 int button_2 = 26;
+int RED_LED = 27;
+int GREEN_LED = 28;
 
 // initialize fingerprint library and oled
 Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 void setup() {
-  pinMode(button_1, INPUT_PULLUP);
+  // pinMode(button_1, INPUT_PULLUP);
   pinMode(button_2, INPUT_PULLUP);
 
   Serial.begin(9600);
@@ -45,39 +48,31 @@ void setup() {
   }
 
   Serial.println("Welcome, place finger to scan!");
-  display.clearDisplay();
-  display.setTextSize(2);
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(0, 0);
-  display.println("Welcome!");
-  display.setTextSize(1);
-  display.setCursor(0, 30);
-  display.println("Place finger to scan!");
-  display.display();
+  // display.clearDisplay();
+  // setOledDisplay("Welcome!", 2, 0, SSD1306_WHITE);
+  // setOledDisplay("Place finger to scan!", 1, 30, SSD1306_WHITE);
 }
 
 void loop() {
-  volatile int value1 = digitalRead(button_1);
+  // volatile int value1 = digitalRead(button_1);
   volatile int value2 = digitalRead(button_2);
-  if (value1 == LOW && value2 == HIGH ) {
-    Serial.println("button 1 PRESSED");
-    int fingerprintId = scanFingerprintAndGetId();
-    if (fingerprintId > 0) {
-      Serial.println("found fingerprint with id: ");
-      Serial.println(fingerprintId);
-      display.clearDisplay();
-      display.setTextSize(2);
-      display.setTextColor(SSD1306_WHITE);
-      display.setCursor(0, 5);
-      display.print("Welcome, ID");
-      display.println(fingerprintId);
-      display.display();
-      // delay(1000);
-    }
-  }
-  if (value1 == HIGH && value2 == LOW) {
+
+  if (value2 == LOW) {
     Serial.println("button 2 PRESSED");
+    display.clearDisplay();
+    setOledDisplay("Ready to enroll finger!", 1, 0, SSD1306_WHITE);
+    setOledDisplay("Place finger to scan!", 1, 30, SSD1306_WHITE);
     enrollNewFingerprint();
+  }
+  Serial.println("Welcome, place finger to scan!");
+  display.clearDisplay();
+  setOledDisplay("Welcome!", 2, 0, SSD1306_WHITE);
+  setOledDisplay("Place finger to scan!", 1, 30, SSD1306_WHITE);
+  int fingerprintId = scanFingerprintAndGetId();
+  if (fingerprintId > 0) {
+    display.clearDisplay();
+    setOledDisplay("Welcome, ID: " + String(fingerprintId), 2, 5, SSD1306_WHITE);
+    delay(1000);
   }
 }
 
@@ -168,7 +163,7 @@ int scanFingerprintAndGetId() {
   int p = -1;
   while (p != FINGERPRINT_OK) {
     p = finger.getImage();
-    if (digitalRead(button_1) == HIGH && digitalRead(button_2) == LOW) {
+    if (digitalRead(button_2) == LOW) {
       Serial.println("Button 2 pressed");
       return -1;
     }
@@ -199,4 +194,13 @@ int scanFingerprintAndGetId() {
   Serial.print("Found ID #"); Serial.print(finger.fingerID);
   Serial.print(" with confidence of "); Serial.println(finger.confidence);
   return finger.fingerID;
+}
+
+void setOledDisplay(const String& displayText, int textSize, int cursorYaxis, uint16_t textColor) {
+  // display.clearDisplay();
+  display.setTextSize(textSize);
+  display.setTextColor(textColor);
+  display.setCursor(0, cursorYaxis);
+  display.println(displayText);
+  display.display();
 }
